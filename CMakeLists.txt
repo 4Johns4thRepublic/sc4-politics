@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.15)
+project(sc4_politics CXX)
+set(CMAKE_CXX_STANDARD 17)
+add_library(politics_core INTERFACE)
+target_include_directories(politics_core INTERFACE include)
+enable_testing()
+add_executable(test_engine tests/test_engine.cpp)
+target_link_libraries(test_engine politics_core)
+add_test(NAME engine COMMAND test_engine)
+option(BUILD_PLUGIN "Build the SimCity 4 plugin (Windows, 32-bit, needs GZCOM_DIR)" OFF)
+if(BUILD_PLUGIN)
+  add_subdirectory(plugin)
+endif()
+# The GZCOM plugin (plugin/) must be built separately as a 32-bit Windows DLL
+# against nsgomez/gzcom-dll - see README.md.

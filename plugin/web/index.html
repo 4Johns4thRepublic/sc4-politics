@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SimCity 4 City Council</title>
+<style>
+:root{--bg:#10151c;--panel:#18202b;--fg:#e8ebf0;--muted:#98a3b3;--line:#2a3442;--track:#263040}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,Segoe UI,sans-serif;padding:16px}
+.w{max-width:960px;margin:0 auto}h1{font-size:24px;margin:0}#city{color:var(--muted);margin:2px 0 14px}
+.g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}@media(max-width:760px){.g{grid-template-columns:minmax(0,1fr)}}
+.p{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.b{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) 52px;gap:8px;align-items:center;padding:4px 0}
+.nm{display:flex;gap:7px;align-items:center;font-size:13px}.sw{width:11px;height:11px;border-radius:3px;flex:none}
+.t{height:18px;background:var(--track);border-radius:4px;overflow:hidden}.f{height:100%;transition:width .3s}
+.pc{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.tot{display:flex;justify-content:space-between;color:var(--muted);border-top:1px solid var(--line);margin-top:8px;padding-top:6px}
+.lead{font-size:17px;font-weight:700;margin:0 0 6px}svg{display:block;width:100%;height:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th{font-size:11px;text-transform:uppercase;color:var(--muted);text-align:right;padding:3px 5px}
+th:first-child,td:first-child{text-align:left}td{padding:6px 5px;border-top:1px solid var(--line);text-align:right}
+.n{color:var(--muted);font-size:12px;margin-top:10px}#wait{display:none;text-align:center;padding:40px;color:var(--muted)}
+</style></head><body><div class="w">
+<h1>City Council</h1><div id="city">Connecting to SimCity 4...</div>
+<div id="wait">Waiting for the first in-game month. Load a city and let time run.</div>
+<div class="g" id="main">
+<div class="p"><h2>Party support</h2><div id="bars"></div><div class="tot"><span>Total</span><span id="tot"></span></div>
+<p class="n" id="assumed"></p></div>
+<div class="p"><h2>Council</h2><p class="lead" id="lead"></p><svg id="hemi" viewBox="0 0 400 215"></svg>
+<table><thead><tr><th>Party</th><th>Support</th><th>Seats</th></tr></thead><tbody id="tbl"></tbody></table></div>
+</div></div>
+<script>
+const $=i=>document.getElementById(i);
+function hemi(parties,n){
+ const rows=Math.max(2,Math.round(Math.sqrt(n/3.2))),r0=70,r1=185,pts=[];
+ const rad=[...Array(rows)].map((_,i)=>r0+(r1-r0)*i/(rows-1)),rs=rad.reduce((a,b)=>a+b,0);let left=n;
+ rad.forEach((r,i)=>{const c=i===rows-1?left:Math.round(n*r/rs);left-=c;for(let j=0;j<c;j++)pts.push({a:Math.PI*(c===1?.5:j/(c-1)),r})});
+ pts.sort((p,q)=>q.a-p.a||p.r-q.r);
+ const own=[];parties.forEach(p=>{for(let k=0;k<p.seats;k++)own.push(p.color)});
+ const d=Math.max(4,Math.min(11,(r1-r0)/rows*.42));
+ return pts.map((p,i)=>`<circle cx="${(200+p.r*Math.cos(p.a)).toFixed(1)}" cy="${(200-p.r*Math.sin(p.a)).toFixed(1)}" r="${d.toFixed(1)}" fill="${own[i]||'#555'}"/>`).join('')+
+ `<text x="200" y="196" text-anchor="middle" font-size="30" font-weight="700" fill="#e8ebf0">${n}</text><text x="200" y="212" text-anchor="middle" font-size="11" fill="#98a3b3">seats</text>`;}
+function draw(s){
+ if(!s.ready){$('main').style.display='none';$('wait').style.display='block';$('city').textContent='Connected';return}
+ $('main').style.display='';$('wait').style.display='none';
+ $('city').textContent=(s.city||'Your city')+' - month '+s.month;
+ $('bars').innerHTML=s.parties.map(p=>`<div class="b"><div class="nm"><span class="sw" style="background:${p.color}"></span>${p.name}</div><div class="t"><div class="f" style="width:${p.permille/10}%;background:${p.color}"></div></div><div class="pc">${(p.permille/10).toFixed(1)}%</div></div>`).join('');
+ $('tot').textContent=(s.parties.reduce((a,p)=>a+p.permille,0)/10).toFixed(1)+'%';
+ const big=s.parties.find(p=>p.key===s.largest);
+ $('lead').textContent=s.noData?'No population data yet. Equal split shown.':`Largest party: ${big.name} (${big.seats} of ${s.seats} seats${s.tie?', tied':''})`;
+ $('hemi').innerHTML=hemi(s.parties,s.seats);
+ $('tbl').innerHTML=s.parties.map(p=>`<tr><td><span class="sw" style="background:${p.color};display:inline-block;margin-right:7px"></span>${p.name}</td><td>${(p.permille/10).toFixed(1)}%</td><td>${p.seats}</td></tr>`).join('');
+ $('assumed').textContent=s.assumed.length?'Assumed (not available from the game): '+s.assumed.join(', ')+'. Edit them in Politics.ini.':'';
+}
+async function tick(){try{const r=await fetch('/state',{cache:'no-store'});draw(await r.json())}catch(e){$('city').textContent='Cannot reach the game. Is SimCity 4 running with the plugin installed?'}}
+tick();setInterval(tick,2000);
+</script></body></html>

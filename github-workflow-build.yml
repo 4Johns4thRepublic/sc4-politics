@@ -1,0 +1,33 @@
+name: Build SC4Politics plugin
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  test-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: g++ -std=c++17 -Wall -Wextra -Iinclude tests/test_engine.cpp -o t && ./t
+  build-dll:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nsgomez/gzcom-dll
+          ref: 74a527c
+          path: gzcom-dll-src
+      - name: Configure (32-bit)
+        run: cmake -S . -B build -A Win32 -DBUILD_PLUGIN=ON -DGZCOM_DIR="${{ github.workspace }}/gzcom-dll-src"
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Collect files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist | Out-Null
+          Copy-Item build/plugin/Release/SC4Politics.dll dist/
+          Copy-Item config/Politics.ini dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SC4Politics
+          path: dist/
