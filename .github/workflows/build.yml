@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: nsgomez/gzcom-dll
-          ref: 74a527c
+          ref: 74a527cc603feb10a0610b625000bbb2d5e8177a
           path: gzcom-dll-src
       - name: Configure (32-bit)
         run: cmake -S . -B build -A Win32 -DBUILD_PLUGIN=ON -DGZCOM_DIR="${{ github.workspace }}/gzcom-dll-src"
