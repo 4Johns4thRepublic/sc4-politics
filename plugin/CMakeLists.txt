@@ -6,6 +6,8 @@ endif()
 set(GZ "${GZCOM_DIR}/gzcom-dll")
 add_library(SC4Politics SHARED
   src/PoliticsDirector.cpp
+  ${GZ}/src/SC4String.cpp
+  ${GZ}/src/STLPORTCharString.cpp
   ${GZ}/src/StringResourceManager.cpp
   ${GZ}/src/cRZBaseString.cpp
   ${GZ}/src/cRZBaseVariant.cpp
